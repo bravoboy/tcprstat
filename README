@@ -1,5 +1,7 @@
 forked from Lowercases/tcprstat
 
+new feature
+
 1: add -F 192.168.0.1   mean filter 129.168.0.1 packet
 2: add -C when run tcprstat on client you need it
 3: tcprstat use first respone packet time - last request packet time as time_diff  but it cannot work for some pipeline model, so I add seq num check 
