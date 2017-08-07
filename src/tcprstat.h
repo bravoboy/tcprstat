@@ -40,6 +40,9 @@ extern time_t timestamp;
 
 extern FILE *capture_file;
 
+extern char *filter_ip;
+
+extern int is_client;
 void terminate(int signal);
 
 #endif

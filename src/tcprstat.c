@@ -52,7 +52,7 @@ struct option long_options[] = {
     { NULL, 0, NULL, '\0' }
 
 };
-char *short_options = "hVp:f:t:n:r:l:";
+char *short_options = "ChVp:f:t:n:r:l:F:";
 
 int specified_addresses = 0;
 
@@ -61,6 +61,8 @@ pthread_t capture_thread_id, output_thread_id;
 // Global options
 char *program_name;
 int port;
+char *filter_ip = NULL;
+int is_client = 0;
 int interval = 30;
 FILE *capture_file = NULL;
 struct output_options output_options = {
@@ -88,11 +90,10 @@ main(int argc, char *argv[]) {
         program_name ++;
     else
         program_name = argv[0];
-        
+
     // Parse command line options
     do {
         c = getopt_long(argc, argv, short_options, long_options, &option_index);
-
         switch (c) {
 
         case -1:
@@ -171,7 +172,12 @@ main(int argc, char *argv[]) {
         case 'V':
             dump_version(stdout);
             return EXIT_SUCCESS;
-
+        case 'F':
+            filter_ip = optarg;
+            break;
+        case 'C':
+            is_client = 1;
+            break;
         default:
             dump_usage(stderr);
             return EXIT_FAILURE;

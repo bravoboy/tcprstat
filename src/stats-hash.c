@@ -32,7 +32,7 @@
 struct session {
     uint32_t laddr, raddr;
     uint16_t lport, rport;
-    
+    uint32_t seq;    
     struct timeval tv;
     
     struct session *next;
@@ -49,7 +49,7 @@ struct hash {
 static unsigned long
     hash_fun(uint32_t laddr, uint32_t raddr, uint16_t lport, uint16_t rport);
 static int hash_set_internal(struct session *sessions, unsigned long sz,
-        uint32_t laddr, uint32_t raddr, uint16_t lport, uint16_t rport,
+        uint32_t laddr, uint32_t raddr, uint16_t lport, uint16_t rport, uint32_t seq,
         struct timeval tv);
 static int hash_load_check(struct hash *hash);
 static unsigned long hash_newsz(unsigned long sz);
@@ -87,7 +87,7 @@ hash_del(struct hash *hash) {
 
 int
 hash_get(struct hash *hash,
-         uint32_t laddr, uint32_t raddr, uint16_t lport, uint16_t rport,
+         uint32_t laddr, uint32_t raddr, uint16_t lport, uint16_t rport, uint32_t seq,
          struct timeval *result)
 {
     struct session *session;
@@ -99,7 +99,8 @@ hash_get(struct hash *hash,
             session->next->raddr == laddr &&
             session->next->laddr == raddr &&
             session->next->rport == lport &&
-            session->next->lport == rport
+            session->next->lport == rport &&
+            session->next->seq   == seq
         )
         {
             *result = session->next->tv;
@@ -113,7 +114,7 @@ hash_get(struct hash *hash,
 
 int
 hash_get_rem(struct hash *hash,
-         uint32_t laddr, uint32_t raddr, uint16_t lport, uint16_t rport,
+         uint32_t laddr, uint32_t raddr, uint16_t lport, uint16_t rport, uint32_t seq,
          struct timeval *result)
 {
     struct session *session, *next;
@@ -125,7 +126,8 @@ hash_get_rem(struct hash *hash,
             session->next->raddr == raddr &&
             session->next->laddr == laddr &&
             session->next->rport == rport &&
-            session->next->lport == lport
+            session->next->lport == lport &&
+            session->next->seq   == seq
         )
         {
             *result = session->next->tv;
@@ -148,13 +150,13 @@ hash_get_rem(struct hash *hash,
 
 int
 hash_set(struct hash *hash,
-         uint32_t laddr, uint32_t raddr, uint16_t lport, uint16_t rport,
+         uint32_t laddr, uint32_t raddr, uint16_t lport, uint16_t rport, uint32_t seq,
          struct timeval value)
 {
     hash_load_check(hash);
     
     if (hash_set_internal(hash->sessions, hash->sz,
-                             laddr, raddr, lport, rport, value))
+                             laddr, raddr, lport, rport, seq, value))
     {
         hash->count ++;
         return 1;
@@ -198,7 +200,7 @@ hash_clean(struct hash *hash, unsigned long min) {
 
 static int
 hash_set_internal(struct session *sessions, unsigned long sz,
-         uint32_t laddr, uint32_t raddr, uint16_t lport, uint16_t rport,
+         uint32_t laddr, uint32_t raddr, uint16_t lport, uint16_t rport, uint32_t seq,
          struct timeval value)
 {
     struct session *session;
@@ -211,7 +213,8 @@ hash_set_internal(struct session *sessions, unsigned long sz,
             session->next->raddr == raddr &&
             session->next->laddr == laddr &&
             session->next->rport == rport &&
-            session->next->lport == lport
+            session->next->lport == lport &&
+            session->next->seq   == seq
         )
         {
             session->next->tv = value;
@@ -228,7 +231,7 @@ hash_set_internal(struct session *sessions, unsigned long sz,
     session->next->laddr = laddr;
     session->next->rport = rport;
     session->next->lport = lport;
-    
+    session->next->seq = seq; 
     session->next->tv = value;
     
     session->next->next = NULL;
@@ -262,7 +265,7 @@ hash_load_check(struct hash *hash) {
                 
                 hash_set_internal(new_sessions, nsz, session->laddr,
                         session->raddr, session->lport, session->rport,
-                        session->tv);
+                        session->seq, session->tv);
                         
             }
             
@@ -290,7 +293,7 @@ hash_fun(uint32_t laddr, uint32_t raddr, uint16_t lport, uint16_t rport) {
     ret = ((uint64_t) laddr << 32) | raddr;
     ret ^= ((uint64_t) lport << 48) | ((uint64_t) rport << 32) |
             ((uint64_t) lport << 16) | rport;
-#elif SIZEOF_UNSIGNED_LONG == 4
+#elif SIZEOF_USIGNED_LONG == 4
     ret = laddr ^ raddr;
     ret ^= (lport << 16) | rport;
 #else

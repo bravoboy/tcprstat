@@ -100,11 +100,11 @@ free_stats(void) {
 
 int
 inbound(struct timeval tv, struct in_addr laddr, struct in_addr raddr,
-        uint16_t lport, uint16_t rport)
+        uint16_t lport, uint16_t rport, uint32_t seq)
 {
     lock_sessions();
     
-    hash_set(sessions, laddr.s_addr, raddr.s_addr, lport, rport, tv);
+    hash_set(sessions, laddr.s_addr, raddr.s_addr, lport, rport, seq, tv);
     
     unlock_sessions();
     
@@ -114,14 +114,14 @@ inbound(struct timeval tv, struct in_addr laddr, struct in_addr raddr,
 
 int
 outbound(struct timeval tv, struct in_addr laddr, struct in_addr raddr,
-         uint16_t lport, uint16_t rport)
+         uint16_t lport, uint16_t rport, uint32_t seq)
 {
     struct timeval start;
     unsigned long newstat;
     
     lock_sessions();
     
-    if (hash_get_rem(sessions, laddr.s_addr, raddr.s_addr, lport, rport, &start))
+    if (hash_get_rem(sessions, laddr.s_addr, raddr.s_addr, lport, rport, seq, &start))
     {
         newstat = (tv.tv_sec - start.tv_sec) * 1000000 +
                     (tv.tv_usec - start.tv_usec);

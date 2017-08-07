@@ -26,7 +26,7 @@
 #include <netinet/tcp.h>
 #include <net/ethernet.h>
 #include <arpa/inet.h>
-
+#include <stdlib.h>
 #include <string.h>
 
 #include <pcap.h>
@@ -37,6 +37,8 @@
 #include "tcprstat.h"
 #include "output.h"
 
+extern char *filter_ip;
+extern int is_client;
 void
 process_packet(unsigned char *user, const struct pcap_pkthdr *header,
         const unsigned char *packet)
@@ -102,12 +104,19 @@ process_ip(pcap_t *dev, const struct ip *ip, struct timeval tv) {
     strncpy(dst, addr, 15);
     dst[15] = '\0';
     
+
+    if (filter_ip != NULL) {
+        if (strncmp(src,filter_ip,strlen(filter_ip)) == 0 ||
+            strncmp(dst,filter_ip,strlen(filter_ip)) == 0) return 0; 
+    }
     if (is_local_address(ip->ip_src))
         incoming = 0;
     else if (is_local_address(ip->ip_dst))
         incoming = 1;
     else
         return 1;
+    
+    if (is_client) incoming = 1 - incoming;
     
     len = htons(ip->ip_len);
     
@@ -132,19 +141,21 @@ process_ip(pcap_t *dev, const struct ip *ip, struct timeval tv) {
         // Capture only "data" packets, ignore TCP control
         if (datalen == 0)
             break;
-
+        
+        //printf("src=%s port=%u dst=%s port=%u seq=%u,ack=%u,ip_len=%u, data_len=%u\n",src,sport,dst,dport,ntohl(tcp->seq),ntohl(tcp->ack_seq),len,datalen);
+        //in: seq + datalen = out: ack_seq
         if (incoming) {
             lport = dport;
             rport = sport;
             
-            inbound(tv, ip->ip_dst, ip->ip_src, lport, rport);
+            inbound(tv, ip->ip_dst, ip->ip_src, lport, rport, ntohl(tcp->seq) + datalen);
             
         }
         else {
             lport = sport;
             rport = dport;
             
-            outbound(tv, ip->ip_src, ip->ip_dst, lport, rport);
+            outbound(tv, ip->ip_src, ip->ip_dst, lport, rport, ntohl(tcp->ack_seq));
             
         }
 
